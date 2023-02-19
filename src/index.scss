@@ -1,0 +1,44 @@
+@mixin animate($animation,$duration,$method,$times){
+  animation: $animation $duration $method $times;
+}
+@mixin keyframes($name){
+  @keyframes #{$name}{
+    @content;
+  }
+}
+$interval: 1s;
+body {
+  display: flex;
+}
+textarea, #program {
+  display: block;
+  width: 50vw;
+  height: 50vh;
+  margin: 0 1em;
+  border: thin solid silver;
+}
+textarea {
+  resize: vertical;
+}
+.line {
+  .char {
+    white-space: pre;
+    display: inline-block;
+    &.active {
+      @include keyframes(highlight){
+        0%{
+          color: blue;
+          background-color: yellow;
+        }
+        100%{
+          color: inherit;
+          background-color: inherit;
+        }
+      }
+      @include animate(highlight, $interval, linear, 1);
+    }
+    &.activeScope {
+      border-bottom: thin solid purple;
+    }
+  }
+}
