@@ -1,15 +1,19 @@
-import {Render} from "./types"
+import {Render, Scope} from "./types"
 import {delay} from "./utils"
 
 export default class Renderer implements Render {
-    constructor(element: HTMLElement) {
+    constructor(code: string, scopes: Scope[], element: HTMLElement) {
+        this.code = code
+        this.scopes = scopes
         this.output = element
     }
 
     private output: HTMLElement
+    private code: string
+    private scopes: Scope[]
 
-    render(code: string) {
-        const markup = [...code].reduce(({block, currentLine}, symbol, i) => {
+    render() {
+        const markup = [...this.code].reduce(({block, currentLine}, symbol, i) => {
             if (symbol === "\n" || i === 0) {
                 const line = document.createElement("div")
                 line.classList.add("line")
@@ -31,6 +35,10 @@ export default class Renderer implements Render {
 
     async renderStep(step: { diapason: number[], diapasonScope: number[] }) {
         const {diapason, diapasonScope} = step
+
+        const currentScope = this.scopes.find(scope => scope.location === diapasonScope[0])
+        console.log(currentScope)
+
         document.querySelectorAll(".char.active").forEach(el => el.classList.remove("active"))
         document.querySelectorAll(".char.activeScope").forEach(el => el.classList.remove("activeScope"))
 

@@ -15,8 +15,6 @@ declare global {
     }
 }
 
-const render = new Render(output)
-const player = new Player(render)
 const parser = new Helper();
 
 window.emit = function (n) {
@@ -24,8 +22,11 @@ window.emit = function (n) {
 }
 input.addEventListener("input", function () {
     const code = this.value;
-    const newCode = parser.refactor(code).code;
-    render.render(code)
+    const {program: {code: newCode}, scopes} = parser.refactor(code);
+    const render = new Render(code, scopes, output)
+    const player = new Player(render)
+    render.render()
+    console.log(newCode)
     const f = new Function(newCode)
     f()
     player.play()
