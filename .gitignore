@@ -2,4 +2,4 @@
 /examples
 /node_modules
 src/index1.ts
-/.idea/*
+/.idea

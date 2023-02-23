@@ -22,14 +22,20 @@ window.emit = function (n) {
 }
 input.addEventListener("input", function () {
     const code = this.value;
-    const {program: {code: newCode}, scopes} = parser.refactor(code);
-    const render = new Render(code, scopes, output)
-    const player = new Player(render)
-    render.render()
-    console.log(newCode)
-    const f = new Function(newCode)
-    f()
-    player.play()
+    try {
+        const {program: {code: newCode}, scopes} = parser.refactor(code);
+        const render = new Render(code, scopes, output)
+        const player = new Player(render)
+        render.render()
+        console.log(newCode)
+        const f = new Function(newCode)
+        f()
+        player.play()
+    } catch (err) {
+        console.log(err)
+    }
 });
-
+document.addEventListener("DOMContentLoaded", () => {
+    input.focus()
+})
 

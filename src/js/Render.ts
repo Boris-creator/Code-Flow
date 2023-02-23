@@ -37,7 +37,9 @@ export default class Renderer implements Render {
         const {diapason, diapasonScope} = step
 
         const currentScope = this.scopes.find(scope => scope.location === diapasonScope[0])
-        console.log(currentScope)
+        if (currentScope) {
+            console.log("variables", currentScope.variables.map(({name}) => name))
+        }
 
         document.querySelectorAll(".char.active").forEach(el => el.classList.remove("active"))
         document.querySelectorAll(".char.activeScope").forEach(el => el.classList.remove("activeScope"))

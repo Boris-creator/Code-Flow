@@ -20,6 +20,7 @@ export default class Player {
 
     async play() {
         if (!this.stack.length) {
+            await this.renderer.renderStep({diapason: [], diapasonScope: []})
             return
         }
         const {from, to, scope} = this.stack.shift();

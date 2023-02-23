@@ -38,7 +38,7 @@ textarea {
       @include animate(highlight, $interval, linear, 1);
     }
     &.activeScope {
-      border-bottom: thin solid purple;
+      background-color: lightblue;
     }
   }
 }

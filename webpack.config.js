@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 module.exports = {
   entry: {
-    app: ["./src/index.ts", "./src/index.scss"],
+    app: ["./src/js/index.ts", "./src/css/index.scss"],
   },
   output: {
     path: path.resolve(__dirname, "./dist"),
