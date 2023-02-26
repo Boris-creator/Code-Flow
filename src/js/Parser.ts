@@ -1,18 +1,18 @@
 import {
-    ArrayPattern,
     callExpression,
     Identifier,
     identifier,
     memberExpression,
     Node,
-    ObjectPattern
 } from "@babel/types";
 import {parse} from "@babel/parser";
 import generate from "@babel/generator"
 import traverse from "@babel/traverse";
-import {Scope} from "./types"
 
-type Entity = ObjectPattern | ArrayPattern | Identifier
+// import * as ts from "typescript";
+
+import {Scope, Node as Tree, TypedNode} from "./types"
+
 
 class UniqueSet<T> {
     constructor(comparator: (ob1: T, ob2: T) => boolean, array: T[] = []) {
@@ -45,17 +45,24 @@ class UniqueSet<T> {
 export default class Helper {
     refactor(code: string) {
         const parsed = parse(code)
+        /*const test = ts.createSourceFile("", code, ts.ScriptTarget.ES2022)
+        test.forEachChild(child => console.log(ts.SyntaxKind[child.kind]))*/
         const scopes = this.findScopes(parsed)
         console.log(parsed)
+        this.toTree(parsed)
         this.transform((parsed))
         return {program: generate(parsed), scopes}
+    }
+    convertToTree(code: string){
+        const parsed = parse(code)
+        return this.toTree(parsed)
     }
 
     private findScopes(node: Node) {
         const {collectIdentifiers} = this
         const scopes: Set<Scope> = new Set()
         let additionalVariables = new UniqueSet<Node>(Helper.eq)
-        let currentScope: Scope = null
+        let currentScope: Scope | null = null
         traverse(node, {
             enter(path) {
                 const node = path.node as Node & { body: Node[] }
@@ -66,7 +73,7 @@ export default class Helper {
                     const scope: Scope = {
                         variables: [...variables],
                         parent: currentScope,
-                        location: node.start
+                        location: node.start ?? 0
                     }
                     currentScope = scope
                     scopes.add(scope)
@@ -91,15 +98,15 @@ export default class Helper {
                     additionalVariables.push(...collectIdentifiers([argumentVariable]))
                 }
             },
+            VariableDeclaration(path) {
+                currentScope?.variables.push(...collectIdentifiers(path.node.declarations.map(declarator => declarator.id)))
+            },
             exit(path) {
                 if (path.node.type !== "BlockStatement") {
                     return
                 }
                 currentScope = currentScope?.parent ?? null
             },
-            VariableDeclaration(path) {
-                currentScope?.variables.push(...collectIdentifiers(path.node.declarations.map(declarator => declarator.id)))
-            }
         })
         return [...scopes]
     }
@@ -123,6 +130,32 @@ export default class Helper {
                 }
             },
         });
+    }
+    private toTree(node: Node){
+        const sourceMap: Map<Tree<TypedNode>, any[]> = new Map()
+        const tree: Tree<TypedNode | null> = {
+            content: null,
+            children: []
+        }
+        const path = [tree]
+        let currentNode = tree
+        traverse(node, {
+            enter({node, parent}) {
+                const childNode: Tree<TypedNode> = {
+                    content: {type: node.type},
+                    children: []
+                }
+                sourceMap.set(childNode, [node.start, node.end])
+                currentNode.children.push(childNode)
+                currentNode = childNode
+                path.push(currentNode)
+            },
+            exit({node, parent}){
+                path.pop()
+                currentNode = path[path.length - 1]
+            }
+        })
+        return {tree, sourceMap}
     }
 
     private createNode(data: string): Node {
@@ -163,7 +196,7 @@ export default class Helper {
             return nodes
         }
         if (node.type === "ArrayPattern") {
-            return node.elements.reduce((acc, element) => [...acc, ...Helper.parsePattern(element)], [])
+            return node.elements.reduce((acc, element ) => [...acc, ...Helper.parsePattern(element!)], [] as Identifier[])
         }
         return []
     }

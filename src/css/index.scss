@@ -1,42 +1,70 @@
-@mixin animate($animation,$duration,$method,$times){
+@mixin animate($animation,$duration,$method,$times) {
   animation: $animation $duration $method $times;
 }
-@mixin keyframes($name){
+
+@mixin keyframes($name) {
   @keyframes #{$name}{
     @content;
   }
 }
+
 $interval: 1s;
 body {
-  display: flex;
+  min-height: 100vh;
+  display: grid;
+  grid-template-areas:
+  "input diagram"
+  "output diagram";
+  grid-template-rows: 45vh 50vh;
+  row-gap: 2vh;
+  @media screen and (max-width: 575px) {
+    grid-template-areas:
+    "input"
+    "output"
+    "diagram";
+    grid-template-rows: repeat(3, 1fr);
+  }
 }
+
 textarea, #program {
   display: block;
-  width: 50vw;
-  height: 50vh;
   margin: 0 1em;
   border: thin solid silver;
 }
+
 textarea {
   resize: vertical;
+  grid-area: input;
 }
+
+#program {
+  grid-area: output;
+}
+
+#diagram {
+  grid-area: diagram;
+  border: thin solid silver;
+}
+
 .line {
   .char {
     white-space: pre;
     display: inline-block;
+
     &.active {
-      @include keyframes(highlight){
-        0%{
+      @include keyframes(highlight) {
+        0% {
           color: blue;
           background-color: yellow;
         }
-        100%{
+        100% {
           color: inherit;
           background-color: inherit;
         }
       }
       @include animate(highlight, $interval, linear, 1);
     }
+
     &.activeScope {
       background-color: lightblue;
     }

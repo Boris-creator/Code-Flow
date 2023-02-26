@@ -23,7 +23,7 @@ export default class Player {
             await this.renderer.renderStep({diapason: [], diapasonScope: []})
             return
         }
-        const {from, to, scope} = this.stack.shift();
+        const {from, to, scope} = this.stack.shift() as Step;
         const diapason = [...Array(to - from)].map((_, i) => i + from)
         const diapasonScope = [...Array(scope.to - scope.from)].map((_, i) => i + scope.from)
         await this.renderer.renderStep({diapason, diapasonScope})
