@@ -2,15 +2,15 @@ import {Step, Render} from "./types"
 import {delay} from "./utils"
 
 export default class Player {
-    constructor(renderer: Render) {
-        this.renderer = renderer
+    constructor(renderers: Render[]) {
+        this.renderers = renderers
         const player = this;
         window.addEventListener("step", (ev: CustomEvent) => {
             player.add(ev.detail)
         })
     }
 
-    private renderer: Render
+    private renderers: Render[]
     private stack: Step[] = []
     private interval = 2000
 
@@ -20,14 +20,15 @@ export default class Player {
 
     async play() {
         if (!this.stack.length) {
-            await this.renderer.renderStep({diapason: [], diapasonScope: []})
+            await this.render(null)
             return
         }
         const {from, to, scope} = this.stack.shift() as Step;
-        const diapason = [...Array(to - from)].map((_, i) => i + from)
-        const diapasonScope = [...Array(scope.to - scope.from)].map((_, i) => i + scope.from)
-        await this.renderer.renderStep({diapason, diapasonScope})
+        await this.render({from, to, scope})
         await delay(this.interval)
         await this.play()
+    }
+    private async render(step: Step | null) {
+        return await Promise.all(this.renderers.map(renderer => renderer.renderStep(step)))
     }
 }

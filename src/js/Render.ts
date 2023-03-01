@@ -1,33 +1,49 @@
-import {Render, Scope, TypedNode} from "./types"
+import {Render, Scope, Node, TypedNode, Step, RenderOptions, Axis} from "./types"
 import {delay} from "./utils"
 import {Diagram} from "./Diagram"
+type Position = {x: number, y: number, width: number, height: number}
 
 export class Drawer implements Render {
-    constructor(diagram: Diagram<any>, sourceMap: Map<any, any>, scopes: Scope[], element: HTMLElement) {
-        this.diagram = diagram
+    constructor(tree: Node<TypedNode | null>, sourceMap: Map<any, any>, scopes: Scope[], element: HTMLElement) {
+        this.sourceMap = sourceMap
+        this.diagram = new Diagram<TypedNode | null>(tree, function (node) {
+            let options: RenderOptions = {
+                axis: Axis.y
+            }
+            const specialCases = {
+                VariableDeclarator: {
+                    axis: Axis.x,
+                    padding: 0,
+                    margin: 0
+                },
+                ArrayPattern: {
+                    isPrimitive: true
+                },
+                ArrayExpression: {
+                    isVisible: false,
+                    padding: 0,
+                    axis: Axis.x
+                }
+            }
+            if (node && node.type in specialCases) {
+                const type = node.type as keyof typeof specialCases
+                options = specialCases[type]
+            }
+            return options
+        })
         this.scopes = scopes
         this.output = element
     }
 
     private output: HTMLElement
-    private diagram: Diagram<TypedNode>
+    private annotation: {area: SVGRectElement | null, label: SVGTextElement | null} = {area: null, label: null}
+    private diagram: Diagram<TypedNode | null>
+    private sourceMap: Map<Node<TypedNode>, any[]>
     private scopes: Scope[]
 
     render() {
+        this.output.innerHTML = ""
         const [, , commonWidth, commonHeight] = this.output.getAttribute("viewBox")!.split(" ").map(Number)
-        const drawRect = (x: number, y: number, width: number, height: number) => {
-            const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
-            rect.setAttribute("x", `${x}`)
-            rect.setAttribute("y", `${y}`)
-            rect.setAttribute("width", `${width}`)
-            rect.setAttribute("height", `${height}`)
-            rect.setAttribute("fill", "transparent")
-            rect.setAttribute("stroke", "grey")
-            rect.setAttribute("stroke-width", "0.2")
-
-            this.output.append(rect)
-            return rect
-        }
         const {layout, ratio} = this.diagram.buildLayout(this.diagram.node, {
             x: 0,
             y: 0,
@@ -36,15 +52,50 @@ export class Drawer implements Render {
         })
         //this.output.setAttribute("viewBox", `0 0 ${commonWidth} ${commonWidth * ratio}`) // TO DO
         for (const [nodeId, area] of layout.entries()) {
-            const rect = drawRect(area.x, area.y, area.width, area.height)
-            //rect.dataset.node = `${nodeId}`
+            const rect = this.drawRect(area, {
+                fill: "transparent",
+                stroke: "grey",
+                "stroke-width": "0.2"
+            })
+            rect.dataset.node = `${nodeId}`
         }
     }
 
-    async renderStep(step: { diapason: number[], diapasonScope: number[] }) {
-        const {diapason, diapasonScope} = step
+    private findNodeByLocation = (diapason: Pick<Step, "from" | "to">) => [...this.sourceMap.entries()].find(([node, [start, end]]) => start === diapason.from && end === diapason.to)?.[0]
 
-
+    async renderStep(step: Step | null) {
+        if (step === null) {
+            this.annotation.area?.remove()
+            return
+        }
+        const node = this.findNodeByLocation(step)
+        if(!node) {
+            return
+        }
+        const el = document.querySelector(`[data-node='${node.id}']`) as SVGGraphicsElement
+        if(!this.annotation.area) {
+            this.annotation.area = this.drawRect(el.getBBox(), {
+                fill: "rgba(0, 100, 200, 0.5)"
+            })
+        } else {
+            this.moveRect(this.annotation.area, el.getBBox())
+        }
+    }
+    private drawRect = (position: Position, style: Record<string, string>) => {
+        const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+        for(const attribute in style) {
+            rect.setAttribute(attribute, style[attribute])
+        }
+        this.moveRect(rect, position)
+        this.output.append(rect)
+        return rect
+    }
+    private moveRect = (rect: SVGRectElement, position: Position) => {
+        const {x, y, width, height} = position
+        rect.setAttribute("x", `${x}`)
+        rect.setAttribute("y", `${y}`)
+        rect.setAttribute("width", `${width}`)
+        rect.setAttribute("height", `${height}`)
     }
 }
 
@@ -83,16 +134,21 @@ export default class Renderer implements Render {
         this.output.innerHTML = markup.outerHTML
     }
 
-    async renderStep(step: { diapason: number[], diapasonScope: number[] }) {
-        const {diapason, diapasonScope} = step
+    async renderStep(step: Step | null) {
+        document.querySelectorAll(".char.active").forEach(el => el.classList.remove("active"))
+        document.querySelectorAll(".char.activeScope").forEach(el => el.classList.remove("activeScope"))
 
+        if (!step) {
+            return
+        }
+
+        const {from, to, scope} = step
+        const diapason = [...Array(to - from)].map((_, i) => i + from)
+        const diapasonScope = [...Array(scope.to - scope.from)].map((_, i) => i + scope.from)
         const currentScope = this.scopes.find(scope => scope.location === diapasonScope[0])
         if (currentScope) {
             console.log("variables", currentScope.variables.map(({name}) => name))
         }
-
-        document.querySelectorAll(".char.active").forEach(el => el.classList.remove("active"))
-        document.querySelectorAll(".char.activeScope").forEach(el => el.classList.remove("activeScope"))
 
         await delay(0)
         diapason.forEach(index => document.querySelector(`.char[data-index="${index}"]`)?.classList.add("active"))

@@ -61,7 +61,7 @@ export default class Helper {
     private findScopes(node: Node) {
         const {collectIdentifiers} = this
         const scopes: Set<Scope> = new Set()
-        let additionalVariables = new UniqueSet<Node>(Helper.eq)
+        const additionalVariables = new UniqueSet<Node>(Helper.eq)
         let currentScope: Scope | null = null
         traverse(node, {
             enter(path) {
@@ -84,7 +84,7 @@ export default class Helper {
             FunctionDeclaration(path) {
                 const {params} = path.node
                 let argumentVariable: Node;
-                for (let param of params) {
+                for (const param of params) {
                     switch (param.type) {
                         case "AssignmentPattern":
                             argumentVariable = param.left
@@ -117,7 +117,7 @@ export default class Helper {
             enter(path) {
                 const node = path.node as Node & { body: Node[] };
                 if (Array.isArray(node.body)) {
-                    for (let childNode of [...node.body]) {
+                    for (const childNode of [...node.body]) {
                         if (childNode.type === "FunctionDeclaration") {
                             continue
                         }
@@ -133,17 +133,21 @@ export default class Helper {
     }
     private toTree(node: Node){
         const sourceMap: Map<Tree<TypedNode>, any[]> = new Map()
+        let autoIncrement = 0
         const tree: Tree<TypedNode | null> = {
             content: null,
-            children: []
+            children: [],
+            id: autoIncrement
         }
         const path = [tree]
         let currentNode = tree
         traverse(node, {
             enter({node, parent}) {
+                autoIncrement++
                 const childNode: Tree<TypedNode> = {
                     content: {type: node.type},
-                    children: []
+                    children: [],
+                    id: autoIncrement
                 }
                 sourceMap.set(childNode, [node.start, node.end])
                 currentNode.children.push(childNode)

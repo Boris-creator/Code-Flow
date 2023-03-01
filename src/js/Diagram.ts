@@ -1,4 +1,4 @@
-import {Axis, Node, RenderOptions} from "./types"
+import {Axis, Node, RenderOptions, LayoutItem, Layout} from "./types"
 
 type TreeNode<T> = {
     content: T | null,
@@ -7,12 +7,7 @@ type TreeNode<T> = {
     weightY: number,
     children: TreeNode<T>[]
 }
-type LayoutItem = {
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-}
+
 
 export class Diagram<T> {
     constructor(node: Node<T>, prepare: (content: T) => RenderOptions) {
@@ -30,9 +25,9 @@ export class Diagram<T> {
     node: TreeNode<T>
     prepare: (content: T) => RenderOptions
 
-    private autoIncrement = 0
+    // private autoIncrement = 0
 
-    buildLayout(node: TreeNode<T>, area: LayoutItem): { layout: Map<TreeNode<T>["id"], LayoutItem>, ratio: number } {
+    buildLayout(node: TreeNode<T>, area: LayoutItem): Layout {
         const layout: Map<number, LayoutItem> = new Map()
         const unitX = area.width / node.weightX
         const unitY = area.height / node.weightY
@@ -91,10 +86,10 @@ export class Diagram<T> {
     }
 
     private createNode(node: Node<T>): TreeNode<T> {
-        this.autoIncrement++
+        // this.autoIncrement++
         return {
             ...node,
-            id: this.autoIncrement,
+            // id: this.autoIncrement,
             weightX: 1,
             weightY: 1,
             children: []
