@@ -29,7 +29,9 @@ export type RenderOptions = {
 export type LayoutItem = {
     x: number,
     y: number,
+    z: number,
     width: number,
     height: number,
+    depth: number
 }
 export type Layout = { layout: Map<any, LayoutItem>, ratio: number }

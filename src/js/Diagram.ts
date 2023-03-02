@@ -1,3 +1,4 @@
+import {multiply} from "./utils"
 import {Axis, Node, RenderOptions, LayoutItem, Layout} from "./types"
 
 type TreeNode<T> = {
@@ -5,6 +6,7 @@ type TreeNode<T> = {
     id: number,
     weightX: number,
     weightY: number,
+    weightZ: number,
     children: TreeNode<T>[]
 }
 
@@ -26,31 +28,47 @@ export class Diagram<T> {
     prepare: (content: T) => RenderOptions
 
     // private autoIncrement = 0
-
+    private transformLayout(layout: Layout["layout"], transformation: number[][]){
+        const transformed: Layout["layout"] = new Map()
+        for(const key of layout.keys()) {
+            const {x, y, z, width, height, depth} = layout.get(key) as LayoutItem
+            const [x1, y1, z1] = multiply([x, y, z], transformation)
+            const [width1, height1, depth1] = multiply([width, height, depth], transformation)
+            transformed.set(key, {x: x1, y: y1, z: z1, width: width1, height: height1, depth: depth1})
+        }
+        return transformed
+    }
+    rotateY(layout: Layout["layout"]){
+        return this.transformLayout(layout, [[0, 0, 1], [0, 1, 0], [1, 0, 0]])
+    }
     buildLayout(node: TreeNode<T>, area: LayoutItem): Layout {
         const layout: Map<number, LayoutItem> = new Map()
         const unitX = area.width / node.weightX
         const unitY = area.height / node.weightY
         const ratio = unitX / unitY
-        const unit = unitX
+        const unitZ = area.depth / node.weightZ
         const scale = (rect: LayoutItem): LayoutItem => {
-            const {x, y, width, height} = rect
+            const {x, y, z, width, height, depth} = rect
             return {
                 x: x * unitX,
                 y: y * unitY,
+                z: z * unitZ,
                 width: width * unitX,
-                height: height * unitY
+                height: height * unitY,
+                depth: depth * unitZ
             }
         }
-        const renderNode = (node: TreeNode<T>, area: LayoutItem) => {
+        const renderNode = (node: TreeNode<T>, area: LayoutItem, depth = 0) => {
             const prepared: typeof this.options = node.content ? Object.assign({...this.options}, this.prepare(node.content)) : this.options
 
             const {padding, margin} = prepared
             const nodeArea = {
                 x: area.x,
                 y: area.y,
+                z: area.z,
                 height: node.weightY,
-                width: node.weightX
+                width: node.weightX,
+                depth: 1 //node.weightZ
             }
             if (prepared.isVisible) {
                 layout.set(node.id, scale(nodeArea))
@@ -61,11 +79,13 @@ export class Diagram<T> {
             const offset = {
                 x: area.x + padding,
                 y: area.y + padding,
-                height: (node.weightY - padding * 2),
-                width: (node.weightX - padding * 2)
+                z: depth,
+                height: node.weightY - padding * 2,
+                width: node.weightX - padding * 2,
+                depth: 1 //node.weightZ
             }
-            node.children.forEach((c, i) => {
-                renderNode(c, offset)
+            node.children.forEach(c => {
+                renderNode(c, offset, depth + 1 + margin)
                 if (prepared.axis === Axis.y) {
                     offset.y += c.weightY + margin
                 } else {
@@ -92,6 +112,7 @@ export class Diagram<T> {
             // id: this.autoIncrement,
             weightX: 1,
             weightY: 1,
+            weightZ: 1,
             children: []
         }
     }
@@ -117,6 +138,7 @@ export class Diagram<T> {
             parent[lengthwise] += child[lengthwise]
             parent[transverse] = Math.max(parent[transverse], child[transverse] + padding * 2)
         }
+        parent.weightZ = Math.max(parent.weightZ, child.weightZ + margin + 1)
         parent.children.push(child);
     }
 }

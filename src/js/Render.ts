@@ -44,12 +44,16 @@ export class Drawer implements Render {
     render() {
         this.output.innerHTML = ""
         const [, , commonWidth, commonHeight] = this.output.getAttribute("viewBox")!.split(" ").map(Number)
-        const {layout, ratio} = this.diagram.buildLayout(this.diagram.node, {
+        const {layout: baseLayout, ratio} = this.diagram.buildLayout(this.diagram.node, {
             x: 0,
             y: 0,
+            z: 0,
             width: commonWidth,
-            height: commonHeight
+            height: commonHeight,
+            depth: commonWidth / 2 // magic number }:>
         })
+        const layout = this.diagram.rotateY(baseLayout)
+        console.log(layout)
         //this.output.setAttribute("viewBox", `0 0 ${commonWidth} ${commonWidth * ratio}`) // TO DO
         for (const [nodeId, area] of layout.entries()) {
             const rect = this.drawRect(area, {
