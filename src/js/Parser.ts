@@ -48,7 +48,6 @@ export default class Helper {
         /*const test = ts.createSourceFile("", code, ts.ScriptTarget.ES2022)
         test.forEachChild(child => console.log(ts.SyntaxKind[child.kind]))*/
         const scopes = this.findScopes(parsed)
-        console.log(parsed)
         this.toTree(parsed)
         this.transform((parsed))
         return {program: generate(parsed), scopes}

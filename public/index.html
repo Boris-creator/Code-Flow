@@ -6,6 +6,37 @@
   <title>Code Flow</title>
 </head>
   <body>
+    <div class="toolbar">
+      <button class="play">play</button>
+      <div class="settings">
+        <label>
+          <span>JS parser</span>
+          <select>
+            <option>Babel</option>
+            <option disabled>Typescript</option>
+            <option disabled>Espree</option>
+          </select>
+        </label>
+        <!--<label>
+          <span>Diagram axis</span>
+          <select id="diagram-axis">
+            <option value="x">X</option>
+            <option value="y" selected>Y</option>
+          </select>
+        </label>-->
+        <label>
+          <span>Diagram projection</span>
+          <select id="diagram-projection">
+            <option value="front" selected>Frontal</option>
+            <option value="side">Lateral</option>
+          </select>
+        </label>
+        <label>
+          <span>fit content</span>
+          <input type="checkbox" id="fit" />
+        </label>
+      </div>
+    </div>
     <textarea></textarea>
     <!--<pre id="program"></pre>-->
   <div id="program"></div>

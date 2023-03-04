@@ -1,18 +1,21 @@
-import {Render, Scope, Node, TypedNode, Step, RenderOptions, Axis} from "./types"
+import {Axis, AxisDirection, Node, Projection, Render, RenderOptions, Scope, Step, TypedNode} from "./types"
 import {delay} from "./utils"
 import {Diagram} from "./Diagram"
-type Position = {x: number, y: number, width: number, height: number}
+
+type Position = { x: number, y: number, width: number, height: number }
+type drawerSettings = { axis?: Axis, projection?: Projection, fitRatio?: boolean }
 
 export class Drawer implements Render {
     constructor(tree: Node<TypedNode | null>, sourceMap: Map<any, any>, scopes: Scope[], element: HTMLElement) {
+        this.tree = tree
         this.sourceMap = sourceMap
-        this.diagram = new Diagram<TypedNode | null>(tree, function (node) {
+        this.diagram = new Diagram<TypedNode | null>(function (node, commonOptions) {
             let options: RenderOptions = {
-                axis: Axis.y
+                axis: commonOptions.axis
             }
-            const specialCases = {
+            const specialCases: Record<string, Omit<RenderOptions, "axis"> & { axis?: AxisDirection }> = {
                 VariableDeclarator: {
-                    axis: Axis.x,
+                    axis: AxisDirection.transverse,
                     padding: 0,
                     margin: 0
                 },
@@ -22,12 +25,19 @@ export class Drawer implements Render {
                 ArrayExpression: {
                     isVisible: false,
                     padding: 0,
-                    axis: Axis.x
+                    axis: AxisDirection.transverse
                 }
             }
             if (node && node.type in specialCases) {
                 const type = node.type as keyof typeof specialCases
-                options = specialCases[type]
+                const special = specialCases[type]
+                const axisDirection = special.axis ?? AxisDirection.lengthwise,
+                    axis = axisDirection === AxisDirection.lengthwise ?
+                        commonOptions.axis : {
+                            [Axis.x]: Axis.y,
+                            [Axis.y]: Axis.x
+                        }[commonOptions.axis]
+                options = {...special, axis}
             }
             return options
         })
@@ -36,15 +46,20 @@ export class Drawer implements Render {
     }
 
     private output: HTMLElement
-    private annotation: {area: SVGRectElement | null, label: SVGTextElement | null} = {area: null, label: null}
+    private annotation: { area: SVGRectElement | null, label: SVGTextElement | null } = {area: null, label: null}
     private diagram: Diagram<TypedNode | null>
+    private tree: Node<TypedNode | null>
     private sourceMap: Map<Node<TypedNode>, any[]>
     private scopes: Scope[]
+    private settings = {projection: Projection.front, axis: Axis.y, fitRatio: false}
+    private fitted = false
 
     render() {
+        this.diagram.setOptions({axis: this.settings.axis})
         this.output.innerHTML = ""
+        this.annotation.area = null
         const [, , commonWidth, commonHeight] = this.output.getAttribute("viewBox")!.split(" ").map(Number)
-        const {layout: baseLayout, ratio} = this.diagram.buildLayout(this.diagram.node, {
+        const {layout: baseLayout, ratio} = this.diagram.buildLayout(this.tree, {
             x: 0,
             y: 0,
             z: 0,
@@ -52,9 +67,18 @@ export class Drawer implements Render {
             height: commonHeight,
             depth: commonWidth / 2 // magic number }:>
         })
-        const layout = this.diagram.rotateY(baseLayout)
-        console.log(layout)
-        //this.output.setAttribute("viewBox", `0 0 ${commonWidth} ${commonWidth * ratio}`) // TO DO
+        let layout = baseLayout
+        if(this.settings.fitRatio && !this.fitted) {
+            layout = this.diagram.squareLayout({layout, ratio})
+            this.output.setAttribute("viewBox", `0 0 ${commonWidth} ${commonWidth * ratio}`)
+            this.fitted = true
+        }
+        if(!this.settings.fitRatio) {
+            this.fitted = false
+        }
+        if(this.settings.projection === Projection.side) {
+            layout = this.diagram.rotateY(layout)
+        }
         for (const [nodeId, area] of layout.entries()) {
             const rect = this.drawRect(area, {
                 fill: "transparent",
@@ -73,11 +97,11 @@ export class Drawer implements Render {
             return
         }
         const node = this.findNodeByLocation(step)
-        if(!node) {
+        if (!node) {
             return
         }
         const el = document.querySelector(`[data-node='${node.id}']`) as SVGGraphicsElement
-        if(!this.annotation.area) {
+        if (!this.annotation.area) {
             this.annotation.area = this.drawRect(el.getBBox(), {
                 fill: "rgba(0, 100, 200, 0.5)"
             })
@@ -85,9 +109,10 @@ export class Drawer implements Render {
             this.moveRect(this.annotation.area, el.getBBox())
         }
     }
+
     private drawRect = (position: Position, style: Record<string, string>) => {
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect")
-        for(const attribute in style) {
+        for (const attribute in style) {
             rect.setAttribute(attribute, style[attribute])
         }
         this.moveRect(rect, position)
@@ -100,6 +125,11 @@ export class Drawer implements Render {
         rect.setAttribute("y", `${y}`)
         rect.setAttribute("width", `${width}`)
         rect.setAttribute("height", `${height}`)
+    }
+
+    setSettings(settings: drawerSettings) {
+        Object.assign(this.settings, settings)
+        this.render()
     }
 }
 

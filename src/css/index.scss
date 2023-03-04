@@ -13,17 +13,22 @@ body {
   min-height: 100vh;
   display: grid;
   grid-template-areas:
+  "toolbar toolbar"
   "input diagram"
   "output diagram";
-  grid-template-rows: 45vh 50vh;
+  grid-template-rows: 5vh 45vh 50vh;
   row-gap: 2vh;
   @media screen and (max-width: 575px) {
     grid-template-areas:
+    "toolbar"
     "input"
     "output"
     "diagram";
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-rows: 5vh repeat(3, 1fr);
   }
+}
+button {
+  cursor: pointer;
 }
 
 textarea, #program {
@@ -44,6 +49,23 @@ textarea {
 #diagram {
   grid-area: diagram;
   border: thin solid silver;
+}
+.toolbar {
+  grid-area: toolbar;
+  position: sticky;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  background-color: lightblue;
+  .play {
+    min-width: 10%;
+  }
+  .settings {
+    display: flex;
+    justify-content: space-around;
+    width: 100%;
+  }
 }
 
 .line {

@@ -12,7 +12,8 @@ export default class Player {
 
     private renderers: Render[]
     private stack: Step[] = []
-    private interval = 2000
+    private readonly interval = 2000
+    private stepToken = {}
 
     add(step: Step) {
         this.stack.push(step)
@@ -24,9 +25,23 @@ export default class Player {
             return
         }
         const {from, to, scope} = this.stack.shift() as Step;
-        await this.render({from, to, scope})
-        await delay(this.interval)
+        const tokenSaved = await this.checkToken(
+            async ()=> await this.render({from, to, scope})
+        )
+        if(!tokenSaved) {return}
+        const tokenSavedOnPause = await this.checkToken(
+            async ()=> await delay(this.interval)
+        )
+        if(!tokenSavedOnPause) {return}
         await this.play()
+    }
+    stop(){
+        this.stepToken = {}
+    }
+    private async checkToken(action: ()=> Promise<any>): Promise<boolean> {
+        const token = this.stepToken
+        await action()
+        return this.stepToken === token
     }
     private async render(step: Step | null) {
         return await Promise.all(this.renderers.map(renderer => renderer.renderStep(step)))

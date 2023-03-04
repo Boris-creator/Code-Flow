@@ -12,15 +12,24 @@ export type Node<T> = {
 export interface Render {
     renderStep: (action: Step | null) => void | Promise<void>
     render: (code: any) => void
+    setSettings?: (settings: any) => void
 }
 
 export enum Axis {
     x = "x",
     y = "y"
 }
+export enum AxisDirection {
+    lengthwise = "lengthwise",
+    transverse = "transverse"
+}
+export enum Projection {
+    front = "front",
+    side = "side"
+}
 
 export type RenderOptions = {
-    axis?: Axis,
+    axis: Axis,
     isVisible?: boolean,
     isPrimitive?: boolean,
     margin?: number,

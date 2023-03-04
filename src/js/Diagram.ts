@@ -12,9 +12,9 @@ type TreeNode<T> = {
 
 
 export class Diagram<T> {
-    constructor(node: Node<T>, prepare: (content: T) => RenderOptions) {
+    constructor(prepare: (content: T, defaultOptions: RenderOptions) => RenderOptions) {
         this.prepare = prepare
-        this.node = this.build(node)
+        // this.node = this.build(node)
     }
 
     readonly options = {
@@ -24,10 +24,13 @@ export class Diagram<T> {
         isVisible: true,
         isPrimitive: false
     }
-    node: TreeNode<T>
-    prepare: (content: T) => RenderOptions
+    // node: TreeNode<T>
+    prepare: (content: T, defaultOptions: RenderOptions) => RenderOptions
 
     // private autoIncrement = 0
+    setOptions(options: Pick<typeof this.options, "axis">){
+        Object.assign(this.options, options)
+    }
     private transformLayout(layout: Layout["layout"], transformation: number[][]){
         const transformed: Layout["layout"] = new Map()
         for(const key of layout.keys()) {
@@ -41,26 +44,35 @@ export class Diagram<T> {
     rotateY(layout: Layout["layout"]){
         return this.transformLayout(layout, [[0, 0, 1], [0, 1, 0], [1, 0, 0]])
     }
-    buildLayout(node: TreeNode<T>, area: LayoutItem): Layout {
+    squareLayout(layout: Layout) {
+        const {layout: layoutItems, ratio} = layout
+        return this.transformLayout(layoutItems, [
+            [1, 0, 0],
+            [0, ratio, 0],
+            [0, 0, 1]
+        ])
+    }
+    private scale = (rect: LayoutItem, scaling: {x: number, y: number, z: number}): LayoutItem => {
+        const {x, y, z, width, height, depth} = rect
+        return {
+            x: x * scaling.x,
+            y: y * scaling.y,
+            z: z * scaling.z,
+            width: width * scaling.x,
+            height: height * scaling.y,
+            depth: depth * scaling.z
+        }
+    }
+    buildLayout(tree: Node<T>, area: LayoutItem): Layout {
+        const node = this.build(tree)
         const layout: Map<number, LayoutItem> = new Map()
         const unitX = area.width / node.weightX
         const unitY = area.height / node.weightY
-        const ratio = unitX / unitY
+        const ratio = node.weightY / node.weightX
         const unitZ = area.depth / node.weightZ
-        const scale = (rect: LayoutItem): LayoutItem => {
-            const {x, y, z, width, height, depth} = rect
-            return {
-                x: x * unitX,
-                y: y * unitY,
-                z: z * unitZ,
-                width: width * unitX,
-                height: height * unitY,
-                depth: depth * unitZ
-            }
-        }
-        const renderNode = (node: TreeNode<T>, area: LayoutItem, depth = 0) => {
-            const prepared: typeof this.options = node.content ? Object.assign({...this.options}, this.prepare(node.content)) : this.options
 
+        const renderNode = (node: TreeNode<T>, area: LayoutItem, depth = 0) => {
+            const prepared: typeof this.options = node.content ? Object.assign({...this.options}, this.prepare(node.content, this.options)) : this.options
             const {padding, margin} = prepared
             const nodeArea = {
                 x: area.x,
@@ -71,7 +83,11 @@ export class Diagram<T> {
                 depth: 1 //node.weightZ
             }
             if (prepared.isVisible) {
-                layout.set(node.id, scale(nodeArea))
+                layout.set(node.id, this.scale(nodeArea, {
+                    x: unitX,
+                    y: unitY,
+                    z: unitZ
+                }))
             }
             if (prepared.isPrimitive) {
                 return
@@ -118,7 +134,7 @@ export class Diagram<T> {
     }
 
     private appendNode(parent: TreeNode<T>, child: TreeNode<T>) {
-        const parentOptions: typeof this.options = parent.content ? Object.assign({...this.options}, this.prepare(parent.content)) : this.options
+        const parentOptions: typeof this.options = parent.content ? Object.assign({...this.options}, this.prepare(parent.content, this.options)) : this.options
 
         const {margin, padding, axis} = parentOptions
 
