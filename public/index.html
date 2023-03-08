@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,9 +12,10 @@
         <label>
           <span>JS parser</span>
           <select>
-            <option>Babel</option>
-            <option disabled>Typescript</option>
-            <option disabled>Espree</option>
+            <option value="babel">Babel</option>
+            <option value="ts" disabled>Typescript</option>
+            <option value="espree" disabled>Espree</option>
+            <option value="swc" disabled>SWC</option>
           </select>
         </label>
         <!--<label>
@@ -37,7 +38,15 @@
         </label>
       </div>
     </div>
-    <textarea></textarea>
+    <textarea>function f(x) {
+  if(x == 0) {
+    return x
+  }
+  return f(x - 1)
+}
+let a = 3
+console.log(f(a))
+    </textarea>
     <!--<pre id="program"></pre>-->
   <div id="program"></div>
   <div>

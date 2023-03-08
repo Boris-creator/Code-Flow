@@ -9,6 +9,11 @@
 }
 
 $interval: 1s;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 body {
   min-height: 100vh;
   display: grid;
@@ -16,7 +21,7 @@ body {
   "toolbar toolbar"
   "input diagram"
   "output diagram";
-  grid-template-rows: 5vh 45vh 50vh;
+  grid-template-rows: 5vh 40vh 45vh;
   row-gap: 2vh;
   @media screen and (max-width: 575px) {
     grid-template-areas:
@@ -35,6 +40,7 @@ textarea, #program {
   display: block;
   margin: 0 1em;
   border: thin solid silver;
+  padding: 1em;
 }
 
 textarea {
@@ -57,7 +63,8 @@ textarea {
   left: 0;
   display: flex;
   align-items: center;
-  background-color: lightblue;
+  padding: 0 1vw;
+  background-color: lightsteelblue;
   .play {
     min-width: 10%;
   }
